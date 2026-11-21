@@ -1624,7 +1624,8 @@ body::-webkit-scrollbar-thumb:hover,
   gap: 6px;
 }
 
-.dictation-check {
+.dictation-check,
+.dictation-row-reset {
   width: 28px;
   height: 28px;
   flex-shrink: 0;
@@ -1639,13 +1640,20 @@ body::-webkit-scrollbar-thumb:hover,
   transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.dictation-check:hover {
+.dictation-check[hidden],
+.dictation-row-reset[hidden] {
+  display: none;
+}
+
+.dictation-check:hover,
+.dictation-row-reset:hover {
   border-color: var(--accent-1);
   background: var(--accent-3);
   color: var(--accent-1);
 }
 
-.dictation-check:active {
+.dictation-check:active,
+.dictation-row-reset:active {
   transform: scale(0.94);
 }
 

@@ -16,6 +16,12 @@ const CHECK_ICON = '<svg viewBox="0 0 20 20" width="16" height="16" fill="none" 
   + '<path d="M4.5 10.5l3.6 3.6 7.4-8" stroke="currentColor" stroke-width="2" '
   + 'stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+const RESET_ICON = '<svg viewBox="0 0 20 20" width="15" height="15" fill="none" aria-hidden="true">'
+  + '<path d="M6.5 7.5H11a4.5 4.5 0 0 1 0 9H8.5" stroke="currentColor" stroke-width="1.8" '
+  + 'stroke-linecap="round" stroke-linejoin="round"/>'
+  + '<path d="M9 4.5L6 7.5l3 3" stroke="currentColor" stroke-width="1.8" '
+  + 'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 /**
  * 按单词切分，忽略大小写与标点，用于比对
  * @param {string} text
@@ -171,7 +177,7 @@ export class DictationView {
     return isCorrect;
   }
 
-  /** 清空本次默写 */
+  /** 清空本次默写（全部） */
   reset() {
     this.stopClip();
     this.rows.forEach((row) => {
@@ -179,10 +185,32 @@ export class DictationView {
       row.answer.hidden = true;
       row.answer.innerHTML = '';
       row.el.classList.remove('correct', 'wrong');
+      row.resetBtn.hidden = true;
     });
     this.#refreshCount();
     this.#scheduleSave(true);
     this.rows[0]?.input.focus({ preventScroll: true });
+  }
+
+  /**
+   * 只清空某一句，其他行原样保留
+   * @param {number} index
+   */
+  resetRow(index) {
+    const row = this.rows[index];
+    if (!row) return;
+
+    if (this.clipIndex === index) this.stopClip();
+
+    row.input.value = '';
+    row.answer.hidden = true;
+    row.answer.innerHTML = '';
+    row.el.classList.remove('correct', 'wrong');
+    row.resetBtn.hidden = true;
+
+    this.#refreshCount();
+    this.#scheduleSave();
+    row.input.focus({ preventScroll: true });
   }
 
   /** 停止当前正在播放的单句音频 */
@@ -228,6 +256,13 @@ export class DictationView {
       if (!btn) return;
       const index = parseInt(btn.dataset.check, 10);
       if (Number.isFinite(index)) this.checkOne(index);
+    }, { signal });
+
+    delegate(this.display, 'click', '.dictation-row-reset', (event) => {
+      const btn = event.target.closest('.dictation-row-reset');
+      if (!btn) return;
+      const index = parseInt(btn.dataset.resetRow, 10);
+      if (Number.isFinite(index)) this.resetRow(index);
     }, { signal });
 
     delegate(this.display, 'input', '.dictation-input', (event) => {
@@ -283,7 +318,8 @@ export class DictationView {
     resetBtn.type = 'button';
     resetBtn.className = 'dictation-action';
     resetBtn.dataset.action = 'reset';
-    resetBtn.textContent = '重写';
+    resetBtn.textContent = '全部重写';
+    resetBtn.title = '清空所有句子';
 
     const count = document.createElement('span');
     count.className = 'dictation-count';
@@ -341,14 +377,23 @@ export class DictationView {
     checkBtn.setAttribute('aria-label', `检查第 ${index + 1} 句`);
     checkBtn.innerHTML = CHECK_ICON;
 
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'dictation-row-reset';
+    resetBtn.dataset.resetRow = String(index);
+    resetBtn.title = '清空这一句重新写';
+    resetBtn.setAttribute('aria-label', `重写第 ${index + 1} 句`);
+    resetBtn.innerHTML = RESET_ICON;
+    resetBtn.hidden = true;
+
     const answer = document.createElement('div');
     answer.className = 'dictation-answer';
     answer.hidden = true;
 
-    inputRow.append(input, checkBtn);
+    inputRow.append(input, checkBtn, resetBtn);
     body.append(inputRow, answer);
     row.append(no, playBtn, body);
-    this.rows.push({ el: row, input, answer, playBtn, checkBtn });
+    this.rows.push({ el: row, input, answer, playBtn, checkBtn, resetBtn });
     return row;
   }
 
@@ -370,6 +415,7 @@ export class DictationView {
     row.el.classList.toggle('correct', isCorrect);
     row.el.classList.toggle('wrong', !isCorrect);
     row.answer.hidden = false;
+    row.resetBtn.hidden = false;
     // 完全没写的行只平铺原文，避免满屏标红；写过但出错才逐词标注
     row.answer.innerHTML = typed.trim()
       ? ops
@@ -394,6 +440,7 @@ export class DictationView {
     row.el.classList.remove('correct', 'wrong');
     row.answer.hidden = true;
     row.answer.innerHTML = '';
+    row.resetBtn.hidden = true;
     this.#refreshCount();
   }
 
