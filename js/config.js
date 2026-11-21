@@ -31,8 +31,8 @@ export const CONFIG = {
   },
 
   ERROR_MESSAGES: {
-    LOAD_BOOKS: '加载课本数据失败',
-    LOAD_CONFIG: '课件配置加载失败',
+    LOAD_BOOKS: '课本数据加载失败，请检查网络后刷新',
+    LOAD_CONFIG: '课件加载失败。若反复失败，请先在浏览器打开 nce.mleo.site 通过验证，再刷新本页',
     LOAD_LYRIC: '加载歌词失败',
     NO_DATA: '未找到可用课本数据',
     LOAD_FAILED: '加载失败',
