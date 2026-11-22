@@ -23,13 +23,15 @@ const RESET_ICON = '<svg viewBox="0 0 20 20" width="15" height="15" fill="none" 
   + 'stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /**
- * 按单词切分，忽略大小写与标点，用于比对
+ * 按单词切分用于比对：标点一律不参与判定，只比单词序列。
+ * 引号直接删除（避免 don't → don t 被拆开），其余标点当作分隔符。
  * @param {string} text
  * @returns {Array<{raw: string, key: string}>}
  */
 function tokenize(text) {
   return String(text || '')
-    .replace(/[^\p{L}\p{N}\s']/gu, ' ')
+    .replace(/['’‘`´"“”]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .split(/\s+/)
     .filter(Boolean)
     .map((raw) => ({ raw, key: raw.toLowerCase() }));
@@ -416,16 +418,16 @@ export class DictationView {
     row.el.classList.toggle('wrong', !isCorrect);
     row.answer.hidden = false;
     row.resetBtn.hidden = false;
-    // 完全没写的行只平铺原文，避免满屏标红；写过但出错才逐词标注
-    row.answer.innerHTML = typed.trim()
-      ? ops
+    // 正确或整句没写：原样展示原文（保留标点）；写过但出错：逐词标注差异
+    row.answer.innerHTML = isCorrect || !typed.trim()
+      ? escapeHtml(expected)
+      : ops
         .map((op) => {
           if (op.type === 'equal') return escapeHtml(op.raw);
           const cls = op.type === 'missing' ? 'miss' : 'extra';
           return `<span class="${cls}">${escapeHtml(op.raw)}</span>`;
         })
-        .join(' ')
-      : escapeHtml(expected);
+        .join(' ');
 
     return isCorrect;
   }

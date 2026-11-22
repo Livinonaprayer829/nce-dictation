@@ -1483,6 +1483,7 @@ body::-webkit-scrollbar-thumb:hover,
   z-index: 3;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 8px;
   padding: 8px 10px;
@@ -1502,6 +1503,8 @@ body::-webkit-scrollbar-thumb:hover,
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
@@ -1529,6 +1532,8 @@ body::-webkit-scrollbar-thumb:hover,
 
 .dictation-count {
   margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.02em;
@@ -1760,5 +1765,16 @@ body.dark-theme .dictation-answer .extra {
   .dictation-toolbar {
     top: -8px;
     padding: 7px 8px;
+    gap: 6px;
+  }
+
+  .dictation-action {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .dictation-count {
+    font-size: 11px;
   }
 }
