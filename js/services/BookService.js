@@ -1,7 +1,12 @@
 /**
  * 课本目录与课件配置加载
+ * 网络抖动时自动重试，仍失败则回退到上次成功缓存的副本
  * @module services/BookService
  */
+
+import { getStorage, setStorage } from '../utils/storage.js';
+
+const RETRY_DELAYS = [400, 900];
 
 export class BookService {
   /**
@@ -17,12 +22,26 @@ export class BookService {
    * @returns {Promise<Array>}
    */
   async loadCatalog(signal) {
-    const response = await fetch(this.catalogUrl, { signal });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    const cacheKey = `nce:catalog:${this.catalogUrl}`;
+    const cached = this.#readCache(cacheKey);
+
+    let data;
+    try {
+      data = await this.#fetchJson(this.catalogUrl, signal);
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      const cachedBooks = Array.isArray(cached?.books) ? cached.books : [];
+      if (cachedBooks.length) {
+        console.warn('课本清单加载失败，使用本地缓存副本', error);
+        this.books = cachedBooks;
+        return this.books;
+      }
+      throw error;
     }
-    const data = await response.json();
-    this.books = Array.isArray(data.books) ? data.books : [];
+
+    const books = Array.isArray(data?.books) ? data.books : [];
+    this.books = books;
+    if (books.length) this.#writeCache(cacheKey, { books });
     return this.books;
   }
 
@@ -53,12 +72,25 @@ export class BookService {
   async loadBook(book, signal) {
     const rawPath = book.path || '';
     const bookPath = rawPath.trim().replace(/\/$/, '');
-    const response = await fetch(`${bookPath}/book.json`, { signal });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    const url = `${bookPath}/book.json`;
+    const cacheKey = `nce:book:${url}`;
+    const cached = this.#readCache(cacheKey);
+
+    let data;
+    try {
+      data = await this.#fetchJson(url, signal);
+      if (Array.isArray(data?.units)) this.#writeCache(cacheKey, data);
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      if (Array.isArray(cached?.units)) {
+        console.warn('课件配置加载失败，使用本地缓存副本', error);
+        data = cached;
+      } else {
+        throw error;
+      }
     }
-    const data = await response.json();
-    const units = (Array.isArray(data.units) ? data.units : [])
+
+    const units = (Array.isArray(data?.units) ? data.units : [])
       .filter((unit) => unit?.filename)
       .map((unit, index) => ({
         ...unit,
@@ -70,9 +102,61 @@ export class BookService {
 
     return {
       units,
-      coverUrl: data.cover ? `${bookPath}/${data.cover}` : '',
-      bookName: data.name || book.title || '',
-      bookLevel: data.level || book.key || '',
+      coverUrl: data?.cover ? `${bookPath}/${data.cover}` : '',
+      bookName: data?.name || book.title || '',
+      bookLevel: data?.level || book.key || '',
     };
+  }
+
+  /**
+   * 带退避重试的 JSON 请求
+   * @param {string} url
+   * @param {AbortSignal} [signal]
+   */
+  async #fetchJson(url, signal) {
+    let lastError;
+
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt += 1) {
+      try {
+        const response = await fetch(url, { signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        if (error?.name === 'AbortError') throw error;
+        lastError = error;
+        if (attempt < RETRY_DELAYS.length) {
+          await this.#delay(RETRY_DELAYS[attempt], signal);
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  #delay(ms, signal) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(resolve, ms);
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      }, { once: true });
+    });
+  }
+
+  #readCache(key) {
+    try {
+      const raw = getStorage(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  #writeCache(key, value) {
+    try {
+      setStorage(key, JSON.stringify(value));
+    } catch {
+      // 缓存失败不影响主流程
+    }
   }
 }
