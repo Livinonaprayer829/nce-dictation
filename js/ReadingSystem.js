@@ -113,23 +113,31 @@ export class ReadingSystem {
       trigger: this.toggleTranslationBtn,
       closeOnSelect: true,
       onSelect: (value) => this.#setTranslationMode(value),
-      onOpen: () => this.translationPanel.sync(this.state.translationMode),
+      onOpen: () => {
+        this.#hideOtherPanels(this.translationPanel);
+        this.translationPanel.sync(this.state.translationMode);
+      },
     });
 
     this.settingsPanel = new OptionsPanel({
       panel: qs('#settingsPanel'),
       trigger: this.loopToggleBtn,
-      closeOnSelect: false,
-      onSelect: (value, group) => {
-        if (group === 'speed') {
-          this.#setSpeed(parseFloat(value));
-        } else {
-          this.#setLoopMode(value);
-        }
-      },
+      closeOnSelect: true,
+      onSelect: (value) => this.#setLoopMode(value),
       onOpen: () => {
+        this.#hideOtherPanels(this.settingsPanel);
         this.settingsPanel.sync(this.state.loopMode, 'loop');
-        this.settingsPanel.sync(this.state.playbackRate, 'speed');
+      },
+    });
+
+    this.speedPanel = new OptionsPanel({
+      panel: qs('#speedPanel'),
+      trigger: this.speedBtn,
+      closeOnSelect: true,
+      onSelect: (value) => this.#setSpeed(parseFloat(value)),
+      onOpen: () => {
+        this.#hideOtherPanels(this.speedPanel);
+        this.speedPanel.sync(this.state.playbackRate, 'speed');
       },
     });
 
@@ -295,6 +303,7 @@ export class ReadingSystem {
     this.dictationView.destroy();
     this.translationPanel?.destroy();
     this.settingsPanel?.destroy();
+    this.speedPanel?.destroy();
     this.unitView.destroy();
     this.prefetch.clear();
     this.toast.destroy();
@@ -303,7 +312,6 @@ export class ReadingSystem {
   #bindChrome() {
     const { signal } = this.abort;
 
-    on(this.speedBtn, 'click', () => this.#cycleSpeed(), { signal });
     on(this.dictationBtn, 'click', () => this.#toggleDictation(), { signal });
 
     on(window, 'hashchange', () => {
@@ -349,7 +357,17 @@ export class ReadingSystem {
     this.#updateLoopUI();
     this.lyricsView.applyTranslationMode(this.state.translationMode, this.toggleTranslationBtn);
     this.translationPanel?.sync(this.state.translationMode);
-    this.settingsPanel?.sync(this.state.playbackRate, 'speed');
+    this.speedPanel?.sync(this.state.playbackRate, 'speed');
+  }
+
+  /**
+   * 三个面板互斥：打开一个就关掉其余
+   * @param {OptionsPanel} except
+   */
+  #hideOtherPanels(except) {
+    [this.translationPanel, this.settingsPanel, this.speedPanel].forEach((panel) => {
+      if (panel && panel !== except) panel.hide();
+    });
   }
 
   #onBookSelect(bookKey) {
@@ -432,12 +450,6 @@ export class ReadingSystem {
     this.#setHighlight(locked);
   }
 
-  #cycleSpeed() {
-    const speeds = this.config.AVAILABLE_SPEEDS;
-    const currentIndex = speeds.indexOf(this.state.playbackRate);
-    this.#setSpeed(speeds[(currentIndex + 1) % speeds.length]);
-  }
-
   #setSpeed(rate) {
     if (!this.config.AVAILABLE_SPEEDS.includes(rate)) return;
 
@@ -445,7 +457,7 @@ export class ReadingSystem {
     this.player.setRate(rate);
     setStorage(this.config.STORAGE_KEYS.PLAYBACK_RATE, rate);
     this.#updateSpeedUI();
-    this.settingsPanel?.sync(rate, 'speed');
+    this.speedPanel?.sync(rate, 'speed');
     this.toast.show(`播放速度 ${rate}x`);
   }
 
