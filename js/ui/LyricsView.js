@@ -25,6 +25,7 @@ export class LyricsView {
     this.container = options.container;
     this.scrollThreshold = options.scrollThreshold ?? 0.22;
     this.onActivate = options.onActivate;
+    this.onRetry = options.onRetry;
     this.lineEls = [];
     this.activeIndex = -1;
     this.abort = new AbortController();
@@ -61,11 +62,18 @@ export class LyricsView {
     this.lineEls = qsa('.lyric-line', this.display);
   }
 
-  setEmpty(message) {
+  /**
+   * @param {string} message
+   * @param {{retry?: boolean}} [options] 是否显示重试按钮
+   */
+  setEmpty(message, options = {}) {
     if (!this.display) return;
     this.lineEls = [];
     this.activeIndex = -1;
-    setHTML(this.display, `<p class="placeholder">${escapeHtml(message)}</p>`);
+    const retry = options.retry
+      ? '<button class="placeholder-retry" type="button">重新加载</button>'
+      : '';
+    setHTML(this.display, `<p class="placeholder">${escapeHtml(message)}${retry}</p>`);
   }
 
   /**
@@ -134,6 +142,9 @@ export class LyricsView {
     };
 
     delegate(this.display, 'click', '.lyric-line', activate, { signal });
+    delegate(this.display, 'click', '.placeholder-retry', () => {
+      this.onRetry?.();
+    }, { signal });
     delegate(this.display, 'keydown', '.lyric-line', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();

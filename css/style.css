@@ -1889,3 +1889,30 @@ body.dark-theme .dictation-answer .extra {
     font-size: 13px;
   }
 }
+
+.placeholder-retry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px auto 0;
+  height: 36px;
+  padding: 0 22px;
+  border: 1px solid var(--accent-1);
+  border-radius: 10px;
+  background: var(--accent-1);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.placeholder-retry:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
+.placeholder-retry:active {
+  transform: scale(0.97);
+}

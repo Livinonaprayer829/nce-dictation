@@ -72,6 +72,7 @@ export class ReadingSystem {
       container: qs('.lyrics-container'),
       scrollThreshold: CONFIG.UI.LYRIC_SCROLL_THRESHOLD,
       onActivate: (index, time) => this.#onLyricActivate(index, time),
+      onRetry: () => this.#bootstrap(),
     });
 
     this.unitView = new UnitView({
@@ -138,6 +139,11 @@ export class ReadingSystem {
   }
 
   async init() {
+    await this.#bootstrap();
+  }
+
+  /** 首次加载与「重新加载」共用同一套流程 */
+  async #bootstrap() {
     try {
       this.#restorePreferences();
       this.state.books = await this.bookService.loadCatalog();
@@ -146,9 +152,17 @@ export class ReadingSystem {
     } catch (error) {
       if (error?.name === 'AbortError') return;
       console.error('Failed to initialize ReadingSystem:', error);
-      this.lyricsView.setEmpty(this.config.ERROR_MESSAGES.LOAD_BOOKS);
-      this.dictationView.setEmpty(this.config.ERROR_MESSAGES.LOAD_BOOKS);
+      this.#showError(this.config.ERROR_MESSAGES.LOAD_BOOKS);
     }
+  }
+
+  /**
+   * 统一的错误展示：歌词区给出「重新加载」按钮
+   * @param {string} message
+   */
+  #showError(message) {
+    this.lyricsView.setEmpty(message, { retry: true });
+    this.dictationView.setEmpty(message);
   }
 
   async applyBookFromHash() {
@@ -177,8 +191,7 @@ export class ReadingSystem {
       this.state.units = [];
       this.unitView.clearUnits();
       this.unitView.setBookMeta(null);
-      this.lyricsView.setEmpty(this.config.ERROR_MESSAGES.NO_DATA);
-      this.dictationView.setEmpty(this.config.ERROR_MESSAGES.NO_DATA);
+      this.#showError(this.config.ERROR_MESSAGES.NO_DATA);
       return;
     }
 
@@ -214,10 +227,7 @@ export class ReadingSystem {
       console.error(this.config.ERROR_MESSAGES.LOAD_CONFIG, error);
       this.state.units = [];
       this.unitView.clearUnits();
-      this.lyricsView.setEmpty(
-        `${this.config.ERROR_MESSAGES.LOAD_CONFIG}: ${this.state.bookPath}/book.json`
-      );
-      this.dictationView.setEmpty(this.config.ERROR_MESSAGES.LOAD_CONFIG);
+      this.#showError(this.config.ERROR_MESSAGES.LOAD_CONFIG);
     }
   }
 
@@ -260,8 +270,7 @@ export class ReadingSystem {
     } catch (error) {
       if (error?.name === 'AbortError' || loadId !== this.unitLoadId) return;
       console.error(this.config.ERROR_MESSAGES.LOAD_LYRIC, error);
-      this.lyricsView.setEmpty(this.config.ERROR_MESSAGES.LOAD_FAILED);
-      this.dictationView.setEmpty(this.config.ERROR_MESSAGES.LOAD_FAILED);
+      this.#showError(this.config.ERROR_MESSAGES.LOAD_FAILED);
     }
 
     if (loadId !== this.unitLoadId) return;
