@@ -21,6 +21,7 @@ import { AudioController } from './player/AudioController.js';
 import { LyricsView } from './ui/LyricsView.js';
 import { UnitView } from './ui/UnitView.js';
 import { DictationView } from './ui/DictationView.js';
+import { OptionsPanel } from './ui/OptionsPanel.js';
 import { Toast } from './ui/Toast.js';
 
 const LOOP_MODE_LABELS = {
@@ -104,6 +105,31 @@ export class ReadingSystem {
         unitIndex: this.state.currentUnitIndex,
       }),
       onToast: (message, options) => this.toast.show(message, options),
+    });
+
+    this.translationPanel = new OptionsPanel({
+      panel: qs('#translationPanel'),
+      trigger: this.toggleTranslationBtn,
+      closeOnSelect: true,
+      onSelect: (value) => this.#setTranslationMode(value),
+      onOpen: () => this.translationPanel.sync(this.state.translationMode),
+    });
+
+    this.settingsPanel = new OptionsPanel({
+      panel: qs('#settingsPanel'),
+      trigger: this.loopToggleBtn,
+      closeOnSelect: false,
+      onSelect: (value, group) => {
+        if (group === 'speed') {
+          this.#setSpeed(parseFloat(value));
+        } else {
+          this.#setLoopMode(value);
+        }
+      },
+      onOpen: () => {
+        this.settingsPanel.sync(this.state.loopMode, 'loop');
+        this.settingsPanel.sync(this.state.playbackRate, 'speed');
+      },
     });
 
     this.abort = new AbortController();
@@ -258,6 +284,8 @@ export class ReadingSystem {
     this.player.destroy();
     this.lyricsView.destroy();
     this.dictationView.destroy();
+    this.translationPanel?.destroy();
+    this.settingsPanel?.destroy();
     this.unitView.destroy();
     this.prefetch.clear();
     this.toast.destroy();
@@ -267,8 +295,6 @@ export class ReadingSystem {
     const { signal } = this.abort;
 
     on(this.speedBtn, 'click', () => this.#cycleSpeed(), { signal });
-    on(this.loopToggleBtn, 'click', () => this.#cycleLoopMode(), { signal });
-    on(this.toggleTranslationBtn, 'click', () => this.#cycleTranslation(), { signal });
     on(this.dictationBtn, 'click', () => this.#toggleDictation(), { signal });
 
     on(window, 'hashchange', () => {
@@ -313,6 +339,8 @@ export class ReadingSystem {
     this.#updateSpeedUI();
     this.#updateLoopUI();
     this.lyricsView.applyTranslationMode(this.state.translationMode, this.toggleTranslationBtn);
+    this.translationPanel?.sync(this.state.translationMode);
+    this.settingsPanel?.sync(this.state.playbackRate, 'speed');
   }
 
   #onBookSelect(bookKey) {
@@ -398,11 +426,18 @@ export class ReadingSystem {
   #cycleSpeed() {
     const speeds = this.config.AVAILABLE_SPEEDS;
     const currentIndex = speeds.indexOf(this.state.playbackRate);
-    this.state.playbackRate = speeds[(currentIndex + 1) % speeds.length];
-    this.player.setRate(this.state.playbackRate);
-    setStorage(this.config.STORAGE_KEYS.PLAYBACK_RATE, this.state.playbackRate);
+    this.#setSpeed(speeds[(currentIndex + 1) % speeds.length]);
+  }
+
+  #setSpeed(rate) {
+    if (!this.config.AVAILABLE_SPEEDS.includes(rate)) return;
+
+    this.state.playbackRate = rate;
+    this.player.setRate(rate);
+    setStorage(this.config.STORAGE_KEYS.PLAYBACK_RATE, rate);
     this.#updateSpeedUI();
-    this.toast.show(`播放速度 ${this.state.playbackRate}x`);
+    this.settingsPanel?.sync(rate, 'speed');
+    this.toast.show(`播放速度 ${rate}x`);
   }
 
   #updateSpeedUI() {
@@ -422,9 +457,9 @@ export class ReadingSystem {
     }
   }
 
-  #cycleLoopMode() {
-    const modes = this.config.LOOP_MODES;
-    const nextMode = modes[(modes.indexOf(this.state.loopMode) + 1) % modes.length];
+  #setLoopMode(nextMode) {
+    if (!this.config.LOOP_MODES.includes(nextMode)) return;
+
     this.state.loopMode = nextMode;
 
     if ((nextMode === 'one' || nextMode === 'click') && this.state.currentLyricIndex >= 0) {
@@ -459,15 +494,18 @@ export class ReadingSystem {
     const label = LOOP_MODE_LABELS[mode] || '循环播放';
     this.loopToggleBtn.title = label;
     this.loopToggleBtn.setAttribute('aria-label', label);
+
+    this.settingsPanel?.sync(mode, 'loop');
   }
 
-  #cycleTranslation() {
-    const modes = this.config.TRANSLATION_MODES;
-    const currentIndex = modes.indexOf(this.state.translationMode);
-    this.state.translationMode = modes[(currentIndex + 1) % modes.length];
-    setStorage(this.config.STORAGE_KEYS.TRANSLATION_MODE, this.state.translationMode);
-    this.lyricsView.applyTranslationMode(this.state.translationMode, this.toggleTranslationBtn);
-    this.toast.show(TRANSLATION_LABELS[this.state.translationMode]);
+  #setTranslationMode(mode) {
+    if (!this.config.TRANSLATION_MODES.includes(mode)) return;
+
+    this.state.translationMode = mode;
+    setStorage(this.config.STORAGE_KEYS.TRANSLATION_MODE, mode);
+    this.lyricsView.applyTranslationMode(mode, this.toggleTranslationBtn);
+    this.translationPanel.sync(mode);
+    this.toast.show(TRANSLATION_LABELS[mode]);
   }
 
   #toggleDictation() {

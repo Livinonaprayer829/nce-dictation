@@ -244,6 +244,33 @@
   </footer>
 </div>
 
+<div id="translationPanel" class="option-panel" role="menu" aria-label="显示类型" hidden>
+  <button class="option-item" type="button" role="menuitemradio" data-value="show" aria-checked="false">双语</button>
+  <button class="option-item" type="button" role="menuitemradio" data-value="english" aria-checked="false">仅英文</button>
+  <button class="option-item" type="button" role="menuitemradio" data-value="chinese" aria-checked="false">仅中文</button>
+  <button class="option-item" type="button" role="menuitemradio" data-value="blur" aria-checked="false">模糊翻译</button>
+</div>
+
+<div id="settingsPanel" class="option-panel" role="menu" aria-label="点读设置" hidden>
+  <p class="option-group-title">循环模式</p>
+  <div class="option-group" data-group="loop">
+    <button class="option-item" type="button" role="menuitemradio" data-value="click" aria-checked="false">单句点读</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="one" aria-checked="false">单句循环</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="list" aria-checked="false">本课循环</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="book" aria-checked="false">本书循环</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="off" aria-checked="false">关闭循环</button>
+  </div>
+  <p class="option-group-title">语速</p>
+  <div class="option-group option-grid" data-group="speed">
+    <button class="option-item" type="button" role="menuitemradio" data-value="0.5" aria-checked="false">0.5×</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="0.75" aria-checked="false">0.75×</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="1" aria-checked="false">1.0×</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="1.25" aria-checked="false">1.25×</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="1.5" aria-checked="false">1.5×</button>
+    <button class="option-item" type="button" role="menuitemradio" data-value="2" aria-checked="false">2.0×</button>
+  </div>
+</div>
+
 <div id="supportModal" class="support-modal" aria-hidden="true" role="dialog" aria-labelledby="supportModalTitle">
   <div class="support-modal-card">
     <button id="supportCloseBtn" class="support-close-btn" type="button" aria-label="关闭弹窗">×</button>

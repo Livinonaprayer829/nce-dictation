@@ -1778,3 +1778,114 @@ body.dark-theme .dictation-answer .extra {
     font-size: 11px;
   }
 }
+
+/* ---------- 选项弹出面板 ---------- */
+.option-panel {
+  position: fixed;
+  z-index: 60;
+  min-width: 152px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--glass-strong);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-md);
+}
+
+.option-panel[hidden] {
+  display: none;
+}
+
+.option-panel.is-open {
+  animation: option-pop 0.14s ease;
+}
+
+@keyframes option-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-1);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.option-item:hover {
+  background: var(--accent-3);
+}
+
+.option-item.active {
+  background: var(--accent-3);
+  border-color: var(--accent-strong);
+  color: var(--accent-1);
+  font-weight: 600;
+}
+
+.option-item:focus-visible {
+  outline: 2px solid var(--accent-1);
+  outline-offset: -2px;
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option-group-title {
+  padding: 6px 10px 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 0 2px 2px;
+}
+
+.option-grid .option-item {
+  justify-content: center;
+  padding: 7px 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .option-panel {
+    min-width: 164px;
+  }
+
+  .option-item {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .option-grid .option-item {
+    padding: 9px 4px;
+    font-size: 13px;
+  }
+}
